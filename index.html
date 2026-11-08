@@ -178,11 +178,12 @@ html.premium-theme{color-scheme:dark;--ink:#f4f3ed;--muted:#bebcc5;--paper:#1717
   const y=Math.max(0,Math.min(innerHeight,clickOrigin?clickOrigin.y:rect.top+rect.height/2));
   const radius=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
   if(typeof document.startViewTransition==='function' && typeof root.animate==='function'){
+   let wave;
    try{
     const transition=document.startViewTransition(()=>applyPremiumTheme(open));
     // A frozen snapshot keeps the page steady while the color wave expands.
     await transition.ready;
-    const wave=root.animate([
+    wave=root.animate([
      {clipPath:`circle(0px at ${x}px ${y}px)`,opacity:0},
      {clipPath:`circle(${radius*.35}px at ${x}px ${y}px)`,opacity:1,offset:.4},
      {clipPath:`circle(${radius}px at ${x}px ${y}px)`,opacity:1}
@@ -191,6 +192,11 @@ html.premium-theme{color-scheme:dark;--ink:#f4f3ed;--muted:#bebcc5;--paper:#1717
     await transition.finished;
     return;
    }catch(error){applyPremiumTheme(open);return}
+   finally{
+    // Release the finished pseudo-element animation so repeat transitions
+    // do not accumulate compositor effects and GPU resources.
+    if(wave)wave.cancel();
+   }
   }
   // Older browsers retain a slow color fade without requiring the newer API.
   root.classList.add('theme-transition');
